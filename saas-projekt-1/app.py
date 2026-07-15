@@ -56,7 +56,7 @@ def generate_social_content(input_text, platform):
 
     try:
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",  # <-- Das neue, ultraschnelle Llama 3.1 Modell
             messages=[
                 {
                     "role": "system",

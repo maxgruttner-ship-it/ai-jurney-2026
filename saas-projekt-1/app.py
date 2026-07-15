@@ -2,10 +2,16 @@ import streamlit as st
 from groq import Groq
 import pypdf
 
-# 1. Streamlit Seiteneinstellungen
-st.set_page_config(page_title="SocialCreator AI", page_icon="🚀", layout="wide")
+# ==========================================
+# 1. SEITENEINSTELLUNGEN (Dein Browsertab-Titel)
+# ==========================================
+st.set_page_config(
+    page_title="SocialCreator AI – PDF zu Social Media Posts",  # Name im Browsertab
+    page_icon="🚀",  # Icon im Browsertab
+    layout="wide",
+)
 
-# 2. Verbindung zu Groq herstellen (Nutzt die verschlüsselten Secrets)
+# Verbindung zu Groq herstellen (Nutzt die verschlüsselten Secrets)
 try:
     groq_api_key = st.secrets["GROQ_API_KEY"]
     client = Groq(api_key=groq_api_key)
@@ -49,7 +55,6 @@ def generate_social_content(input_text, platform):
     }
 
     try:
-        # Wir nutzen das extrem schnelle Llama 3 Modell über Groq
         completion = client.chat.completions.create(
             model="llama3-8b-8192",
             messages=[
@@ -67,17 +72,27 @@ def generate_social_content(input_text, platform):
         return f"Fehler bei der Generierung: {str(e)}"
 
 
-# --- UI DESIGN ---
-
+# ==========================================
+# 2. WILLKOMMENS-BEREICH & DESIGN (Die Optik)
+# ==========================================
 st.title("🚀 SocialCreator AI")
-st.subheader("Verwandle PDFs in Sekundenschnelle in viralen Social-Media-Content")
-st.write(
-    "Lade ein PDF hoch und lass Groq die Arbeit für LinkedIn, X (Twitter) oder TikTok erledigen."
+
+# Die schöne, farbige Infobox zur Begrüßung
+st.info(
+    "👋 **Willkommen!** Dieses Tool verwandelt deine Dokumente in Sekundenschnelle in fertige Social-Media-Beiträge. Lade einfach unten dein PDF hoch, um zu starten."
 )
+
+# Der strukturierte Ablauf für den User
+st.markdown("""
+### So einfach funktioniert es:
+1. 📂 **PDF hochladen** (Dein Dokument)
+2. 🎯 **Plattform wählen** (LinkedIn, X, TikTok)
+3. ✨ **Content kopieren** (Fertig generiert durch Groq AI)
+""")
 
 st.divider()
 
-# Grid Layout für die App
+# Grid Layout für die App (Upload und Generierung)
 col1, col2 = st.columns([1, 1])
 
 with col1:
@@ -89,7 +104,6 @@ with col1:
         with st.spinner("Extrahiere Text aus PDF..."):
             extracted_text = extract_text_from_pdf(uploaded_file)
             st.success("PDF erfolgreich geladen!")
-            # Vorschau des Texts anzeigen (gekürzt)
             with st.expander("Vorschau des extrahierten Texts"):
                 st.write(extracted_text[:1000] + "...")
 
@@ -108,7 +122,7 @@ with col2:
                 result = generate_social_content(extracted_text, platform)
                 st.session_state["result"] = result
 
-# Ergebnisbereich anzeigen, wenn vorhanden
+# Ergebnisbereich anzeigen
 if "result" in st.session_state:
     st.divider()
     st.header("3. Dein fertiger Social-Media-Post")

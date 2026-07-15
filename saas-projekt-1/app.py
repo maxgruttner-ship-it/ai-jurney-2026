@@ -1,0 +1,120 @@
+import streamlit as st
+from groq import Groq
+import pypdf
+
+# 1. Streamlit Seiteneinstellungen
+st.set_page_config(page_title="SocialCreator AI", page_icon="🚀", layout="wide")
+
+# 2. Verbindung zu Groq herstellen (Nutzt die verschlüsselten Secrets)
+try:
+    groq_api_key = st.secrets["GROQ_API_KEY"]
+    client = Groq(api_key=groq_api_key)
+except Exception as e:
+    st.error("Fehler: Der Groq API-Key konnte nicht in den Secrets gefunden werden.")
+    st.stop()
+
+
+# Funktion, um Text aus der PDF zu extrahieren
+def extract_text_from_pdf(pdf_file):
+    reader = pypdf.PdfReader(pdf_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() or ""
+    return text
+
+
+# Funktion, um den Social Media Content via Groq zu generieren
+def generate_social_content(input_text, platform):
+    prompts = {
+        "LinkedIn": (
+            "Du bist ein professioneller LinkedIn-Ghostwriter. Erstelle aus dem folgenden Text "
+            "einen fesselnden, professionellen LinkedIn-Post. Nutze Absätze, Emojis und "
+            "beende den Post mit 3 relevanten Hashtags sowie einer Frage, die Interaktion anregt.\n\n"
+            f"Textvorlage:\n{input_text}"
+        ),
+        "Twitter/X Thread": (
+            "Du bist ein Experte für virale Twitter/X-Threads. Erstelle aus dem folgenden Text "
+            "einen Thread bestehend aus genau 3 bis 5 durchnummerierten Tweets (1/, 2/, etc.). "
+            "Jeder Tweet muss kurz, knackig und unter 280 Zeichen sein.\n\n"
+            f"Textvorlage:\n{input_text}"
+        ),
+        "TikTok/Reels Script": (
+            "Du bist ein genialer Kurzvideo-Creator. Erstelle aus dem folgenden Text ein "
+            "Videoskript für ein TikTok oder Instagram Reel. Unterteile es klar in:\n"
+            "- HOOK (Die ersten 3 Sekunden, um Aufmerksamkeit zu fesseln)\n"
+            "- BODY (Der Hauptinhalt, leicht verständlich auf den Punkt gebracht)\n"
+            "- CTA (Call to Action, was der Zuschauer tun soll)\n\n"
+            f"Textvorlage:\n{input_text}"
+        ),
+    }
+
+    try:
+        # Wir nutzen das extrem schnelle Llama 3 Modell über Groq
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Du bist ein weltklasse Social-Media-Manager. Antworte immer auf Deutsch.",
+                },
+                {"role": "user", "content": prompts[platform]},
+            ],
+            temperature=0.7,
+            max_tokens=1024,
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        return f"Fehler bei der Generierung: {str(e)}"
+
+
+# --- UI DESIGN ---
+
+st.title("🚀 SocialCreator AI")
+st.subheader("Verwandle PDFs in Sekundenschnelle in viralen Social-Media-Content")
+st.write(
+    "Lade ein PDF hoch und lass Groq die Arbeit für LinkedIn, X (Twitter) oder TikTok erledigen."
+)
+
+st.divider()
+
+# Grid Layout für die App
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    st.header("1. Quelle hochladen")
+    uploaded_file = st.file_uploader("Wähle eine PDF-Datei aus", type=["pdf"])
+
+    extracted_text = ""
+    if uploaded_file is not None:
+        with st.spinner("Extrahiere Text aus PDF..."):
+            extracted_text = extract_text_from_pdf(uploaded_file)
+            st.success("PDF erfolgreich geladen!")
+            # Vorschau des Texts anzeigen (gekürzt)
+            with st.expander("Vorschau des extrahierten Texts"):
+                st.write(extracted_text[:1000] + "...")
+
+with col2:
+    st.header("2. Content generieren")
+    platform = st.selectbox(
+        "Für welche Plattform möchtest du Content erstellen?",
+        ["LinkedIn", "Twitter/X Thread", "TikTok/Reels Script"],
+    )
+
+    if st.button("Content generieren ✨", type="primary"):
+        if not extracted_text:
+            st.warning("Bitte lade zuerst eine PDF-Datei hoch!")
+        else:
+            with st.spinner(f"Groq generiert deinen {platform}-Post..."):
+                result = generate_social_content(extracted_text, platform)
+                st.session_state["result"] = result
+
+# Ergebnisbereich anzeigen, wenn vorhanden
+if "result" in st.session_state:
+    st.divider()
+    st.header("3. Dein fertiger Social-Media-Post")
+    st.text_area(
+        "Kopiere deinen Text hier:", value=st.session_state["result"], height=300
+    )
+    st.info(
+        "Tipp: Du kannst den Text direkt oben kopieren und für deine Kanäle anpassen!"
+    )

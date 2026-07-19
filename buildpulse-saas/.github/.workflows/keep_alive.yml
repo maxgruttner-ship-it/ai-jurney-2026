@@ -1,0 +1,16 @@
+name: Keep Streamlit App Alive
+
+on:
+  schedule:
+    # Läuft alle 5 Minuten (Cronjob Syntax)
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Erlaubt es, den Ping auch manuell auf GitHub zu starten
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit App
+        run: |
+          # Ersetze die URL unten mit deiner echten Streamlit-URL!
+          curl -I https://deine-app-name.streamlit.app/
